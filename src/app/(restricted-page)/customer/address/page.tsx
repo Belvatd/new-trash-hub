@@ -1,7 +1,7 @@
 "use client"
 
 import ServiceHeader from "@/components/ServiceHeader/ServiceHeader"
-import { auth } from "@/firebase/config"
+import { createClient } from "@/supabase/client"
 import { useEditUser, useGetUserById } from "@/hooks/services/Auth"
 import clsx from "clsx"
 import { useRouter } from "next/navigation"
@@ -14,12 +14,13 @@ const Page = () => {
   const [userId, setUserId] = useState("")
   const router = useRouter()
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user) {
-        setUserId(user.uid)
+    const supabase = createClient()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUserId(session.user.id)
       }
     })
-    return () => unsubscribe()
+    return () => subscription.unsubscribe()
   }, [])
 
   const { data: dataUserById, isFetching, status } = useGetUserById(userId)

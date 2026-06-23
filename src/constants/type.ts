@@ -21,6 +21,15 @@ export enum OrderStatus {
   DONE = "DONE",
 }
 
+export type TTrashRow = {
+  id: string
+  name: string
+  description: string
+  imageUrl: string
+  points: number
+  created_at: string
+}
+
 export type TTrash = {
   totalTrash: number
   totalXp: number

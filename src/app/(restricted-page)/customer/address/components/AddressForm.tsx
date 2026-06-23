@@ -59,7 +59,7 @@ const AddressForm = ({ address, isEdit, indexEdit }: TAddressFormProps) => {
   const onSubmit = (data: TAddress) => {
     if (data && user && !isEdit) {
       addAddress({
-        userId: user?.uid,
+        userId: user?.id,
         address: {
           addressName: data.addressName,
           fullAddress: data.fullAddress,
@@ -73,7 +73,7 @@ const AddressForm = ({ address, isEdit, indexEdit }: TAddressFormProps) => {
 
     if (data && isEdit && user) {
       editAddress({
-        userId: user?.uid,
+        userId: user?.id,
         address: {
           addressName: data.addressName,
           fullAddress: data.fullAddress,

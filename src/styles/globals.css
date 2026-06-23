@@ -27,6 +27,8 @@ html {
   margin: auto;
   background: white;
   height: 100dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .pinPoint {

@@ -1,8 +1,7 @@
-import { collection, addDoc, doc, getDoc, updateDoc } from "firebase/firestore"
 import { createMutation, createQuery } from "react-query-kit"
 import { CreateOrderType } from "."
-import { database } from "@/firebase/config"
-import { TTrash } from "@/constants/type"
+import { TTrashRow } from "@/constants/type"
+import { createClient } from "@/supabase/client"
 
 export const useCreateOrder = createMutation({
   mutationFn: async ({
@@ -16,52 +15,101 @@ export const useCreateOrder = createMutation({
     trashId,
     fullAddress,
   }: CreateOrderType) => {
-    const docRef = await addDoc(collection(database, "customer-orders"), {
-      customerId,
-      addressNotes,
-      orderNotes,
-      trashPicture,
-      pinpoint,
-      status,
-      createdDate,
-      trashId,
-      fullAddress,
-    })
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from("customer_orders")
+      .insert({
+        customerId,
+        addressNotes,
+        orderNotes,
+        trashPicture,
+        pinpoint,
+        status,
+        createdDate,
+        trashId,
+        fullAddress,
+      })
+      .select()
+      .single()
 
-    const docSnap = await getDoc(docRef)
-    return { id: docSnap?.id, status: true }
+    if (error) throw error
+
+    return { id: data.id, status: true }
   },
 })
 
 export const useEditOrder = createMutation({
   mutationFn: async ({ id, updatedData }: { id: string; updatedData: any }) => {
-    const docRef = doc(database, "customer-orders", id)
-    const docSnapshot = await getDoc(docRef)
+    const supabase = createClient()
+    const { error } = await supabase
+      .from("customer_orders")
+      .update(updatedData)
+      .eq("id", id)
 
-    if (docSnapshot.exists()) {
-      await updateDoc(docRef, updatedData)
-      return { status: true }
-    }
-    throw new Error("Order not found")
+    if (error) throw error
+
+    return { status: true }
   },
 })
 
 export const useGetCustomerOrder = createQuery({
   queryKey: ["customer-order-detail"],
   fetcher: async (variable: { id: string }) => {
-    const docRef = doc(database, "customer-orders", variable.id)
-    const docSnap = await getDoc(docRef)
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from("customer_orders")
+      .select("*")
+      .eq("id", variable.id)
+      .single()
 
-    return docSnap.data() as CreateOrderType
+    if (error) throw error
+
+    return data as CreateOrderType
   },
 })
 
 export const useGetTrash = createQuery({
   queryKey: ["trash"],
   fetcher: async (variable: { id: string }) => {
-    const docRef = doc(database, "trash", variable.id)
-    const docSnap = await getDoc(docRef)
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from("trash")
+      .select("*")
+      .eq("id", variable.id)
+      .single()
 
-    return docSnap.data() as TTrash
+    if (error) throw error
+
+    return data as TTrashRow
+  },
+})
+
+export const useGetAllTrashes = createQuery({
+  queryKey: ["all-trashes"],
+  fetcher: async () => {
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from("trash")
+      .select("*")
+
+    if (error) throw error
+
+    return data as TTrashRow[]
+  },
+})
+
+export const useGetOngoingOrders = createQuery({
+  queryKey: ["ongoing-orders"],
+  fetcher: async (variable: { customerId: string }) => {
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from("customer_orders")
+      .select("*")
+      .eq("customerId", variable.customerId)
+      .in("status", ["WAITING", "ONPROGRESS"])
+      .order("createdDate", { ascending: false })
+
+    if (error) throw error
+    return data as (CreateOrderType & { id: string })[]
   },
 })

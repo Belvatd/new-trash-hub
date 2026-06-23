@@ -17,7 +17,7 @@ const Page = () => {
 
   const [address, setAddress] = useState<TAddressItem>()
 
-  const { data: dataUserById, isFetching } = useGetUserById(user?.uid || "")
+  const { data: dataUserById, isFetching } = useGetUserById(user?.id || "")
 
   useEffect(() => {
     if (!!dataUserById?.address?.length && idx) {

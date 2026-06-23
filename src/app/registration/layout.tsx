@@ -1,11 +1,8 @@
-import { PropsWithChildren } from "react"
+import React, { PropsWithChildren } from "react"
 
 const Layout = (props: PropsWithChildren) => {
   return (
-    <div
-      className="bg-cover bg-center"
-      style={{ backgroundImage: "url(https://i.ibb.co/3c0P6T7/Bg.png)" }}
-    >
+    <div className="bg-patern flex h-full w-full bg-cover p-2 pb-[22px]">
       {props.children}
     </div>
   )

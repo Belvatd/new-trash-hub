@@ -3,11 +3,13 @@
 import { BottomSheet } from "@/components/BottomSheet"
 import { FormInputText } from "@/components/FormInputText"
 import { FormInputTextArea } from "@/components/FormInputTextArea"
+import { FormImageUpload } from "@/components/FormImageUpload"
+import { FormSelect } from "@/components/FormSelect"
 import { MapsComponent } from "@/components/MapsComponent"
 import ServiceHeader from "@/components/ServiceHeader/ServiceHeader"
-import { auth } from "@/firebase/config"
+import { createClient } from "@/supabase/client"
 import { useGetUserById } from "@/hooks/services/Auth"
-import { useCreateOrder } from "@/hooks/services/CustomerOrders"
+import { useCreateOrder, useGetAllTrashes } from "@/hooks/services/CustomerOrders"
 import {
   CreateOrderSchema,
   CreateOrderType,
@@ -26,16 +28,20 @@ const Page = () => {
   const [open, setOpen] = useState(false)
   const [orderId, setOrderId] = useState("")
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user) {
-        setUserId(user.uid)
+    const supabase = createClient()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUserId(session.user.id)
       }
     })
-    return () => unsubscribe()
+    return () => subscription.unsubscribe()
   }, [])
 
   const { data: dataUserById, isFetching, status } = useGetUserById(userId)
   const { mutateAsync, isPending, status: statusOrder } = useCreateOrder()
+  const { data: trashes, isFetching: fetchingTrashes } = useGetAllTrashes()
+
+  const trashOptions = trashes?.map(t => ({ label: t.name, value: t.id })) || []
 
   const pinpoint = {
     lat: dataUserById?.address?.[dataUserById?.indexAddressSelected]?.pinpoint
@@ -47,16 +53,11 @@ const Page = () => {
   const date = new Date()
 
   useEffect(() => {
-    const searchParams = new URLSearchParams()
-    searchParams.set("_lat", pinpoint?.lat?.toString())
-    searchParams.set("_long", pinpoint?.lng?.toString())
-    searchParams.set("orderId", orderId)
     if (!isPending && statusOrder === "success" && orderId) {
-      router.push(
-        `/customer/create-order/pickup-process?${searchParams.toString()}`,
-      )
+      setOpen(false)
+      router.push(`/customer/pickup-process?orderId=${orderId}`)
     }
-  }, [isPending, statusOrder, orderId, pinpoint?.lat, pinpoint?.lng, router])
+  }, [isPending, statusOrder, orderId, router])
 
   const { handleSubmit, control } = useForm<CreateOrderType>({
     resolver: zodResolver(CreateOrderSchema),
@@ -101,7 +102,7 @@ const Page = () => {
         fullAddress:
           dataUserById?.address?.[dataUserById?.indexAddressSelected]
             ?.fullAddress,
-        trashId: "",
+        trashId: data?.trashId,
       }
       const result = await mutateAsync(payload)
       console.log(result)
@@ -135,7 +136,7 @@ const Page = () => {
                 draggable: false,
               }}
               containerProps={{
-                className: "h-[100px] w-full",
+                className: "h-[100px] max-h-[100px] w-full",
               }}
             />
             <div className="flex justify-between gap-1">
@@ -177,6 +178,18 @@ const Page = () => {
           <Divider className="mx-6" />
           <div className="m-6 flex flex-col gap-3">
             <p className="text-[16px] font-semibold">Informasi Tambahan</p>
+            <FormSelect
+              control={control}
+              name="trashId"
+              label="Jenis Sampah"
+              options={trashOptions}
+              placeholder="Pilih jenis sampah"
+            />
+            <FormImageUpload
+              control={control}
+              name="trashPicture"
+              label="Foto Sampah"
+            />
             <FormInputTextArea
               name={"orderNotes"}
               control={control}
@@ -231,3 +244,4 @@ const Page = () => {
 }
 
 export default Page
+

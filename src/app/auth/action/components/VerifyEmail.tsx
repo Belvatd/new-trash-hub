@@ -1,27 +1,8 @@
 "use client"
 
-import { applyActionCode } from "firebase/auth"
-import { auth } from "@/firebase/config"
 import Link from "next/link"
-import { useEffect } from "react"
 
-type TVerifyEmailProps = {
-  code?: string
-}
-
-const VerifyEmail = ({ code }: TVerifyEmailProps) => {
-  const handleVerifyUser = async () => {
-    try {
-      await applyActionCode(auth, code || "")
-    } catch (error) {
-      console.log(error)
-    }
-  }
-
-  useEffect(() => {
-    handleVerifyUser()
-  }, [])
-
+const VerifyEmail = () => {
   return (
     <div className="mx-auto my-auto text-gray-500">
       <p>Email Berhasil Terverifikasi</p>

@@ -1,9 +1,9 @@
-import { TTrash } from "@/constants/type"
+import { TTrashRow } from "@/constants/type"
 import React from "react"
 import { Info } from "react-feather"
 
 type TTrashSectionProps = {
-  trashData?: TTrash
+  trashData?: TTrashRow
 }
 
 const TrashSection = ({ trashData }: TTrashSectionProps) => {
@@ -20,32 +20,23 @@ const TrashSection = ({ trashData }: TTrashSectionProps) => {
 
   return (
     <div>
-      <div className="grid grid-cols-3">
+      <div className="grid grid-cols-2">
         <div className="text-center">
-          <p className="text-xs text-gray-500">Total Sampah</p>
-          <p className="mt-1 text-sm font-medium">{trashData.totalTrash} Kg</p>
-        </div>
-
-        <div className="text-center">
-          <p className="text-xs text-gray-500">Banyak Jenis</p>
-          <p className="mt-1 text-sm font-medium">
-            {trashData.detailTrash.length} Kg
-          </p>
+          <p className="text-xs text-gray-500">Kategori</p>
+          <p className="mt-1 text-sm font-medium">{trashData.name}</p>
         </div>
 
         <div className="text-center">
           <p className="text-xs text-gray-500">Total Xp</p>
-          <p className="mt-1 text-sm font-medium">+{trashData.totalXp}</p>
+          <p className="mt-1 text-sm font-medium">+{trashData.points}</p>
         </div>
       </div>
 
       <div className="mt-3 flex flex-col gap-2">
-        {trashData.detailTrash.map((item, i) => (
-          <div key={i} className="flex items-center justify-between text-xs">
-            <p className="text-gray-500">{item.name}</p>
-            <p>{item.total}Kg</p>
-          </div>
-        ))}
+        <div className="flex items-center justify-between text-xs">
+          <p className="text-gray-500">{trashData.name}</p>
+          <p>Sesuai Foto</p>
+        </div>
       </div>
     </div>
   )

@@ -1,12 +1,10 @@
 "use client"
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { User, onAuthStateChanged } from "firebase/auth"
-import { doc, getDoc } from "firebase/firestore"
 import { usePathname, useRouter } from "next/navigation"
 import { PropsWithChildren, useEffect, useState } from "react"
 import { TypeAccount } from "@/constants/type"
-import { auth, database } from "@/firebase/config"
+import { createClient } from "@/supabase/client"
 
 const restrictedPath = ["/cleaner", "/customer"]
 
@@ -18,20 +16,22 @@ const ClientProvider = (props: PropsWithChildren) => {
   const isRestricted = restrictedPath.some((path) => pathname.startsWith(path))
 
   const handleAuthentication = () => {
-    onAuthStateChanged(auth, async (currentUser) => {
+    const supabase = createClient()
+    supabase.auth.onAuthStateChange(async (_event, session) => {
+      const currentUser = session?.user
+      // Jika halaman restricted tapi tidak ada user, redirect ke home
       if (isRestricted && !currentUser) {
         return router.push("/")
       }
 
-      if (currentUser && currentUser.emailVerified && !isRestricted) {
-        const docRef = await getDoc(doc(database, "users", currentUser.uid))
-        const data: any = docRef.data()
+      // Hanya redirect ke dashboard jika user ada di halaman publik (bukan setelah login form push)
+      // Gunakan user_metadata untuk dapat type tanpa perlu query DB
+      if (currentUser && currentUser.email_confirmed_at && !isRestricted && pathname === "/") {
+        const type = currentUser.user_metadata?.type as TypeAccount
 
-        if (data?.type === TypeAccount.CLEANER) {
+        if (type === TypeAccount.CLEANER) {
           router.push("/cleaner")
-        }
-
-        if (data?.type === TypeAccount.CUSTOMER) {
+        } else if (type === TypeAccount.CUSTOMER) {
           router.push("/customer")
         }
       }

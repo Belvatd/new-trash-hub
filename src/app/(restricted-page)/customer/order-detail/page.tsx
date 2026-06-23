@@ -2,7 +2,6 @@
 
 import ServiceHeader from "@/components/ServiceHeader/ServiceHeader"
 import {
-  CreateOrderType,
   useGetCustomerOrder,
   useGetTrash,
 } from "@/hooks/services/CustomerOrders"
@@ -26,7 +25,7 @@ const Page = () => {
     enabled: !!id,
   })
 
-  const { data: cleanerData } = useGetUserById(orderData?.cleanerId|| "")
+  const { data: cleanerData } = useGetUserById(orderData?.cleanerId || "")
 
   const { data: trashData } = useGetTrash({
     variables: {
@@ -49,7 +48,7 @@ const Page = () => {
 
       {!!orderData && !isLoading && (
         <div className="flex-grow">
-          <SubHeaderStatus status={OrderStatus.DONE} xp={trashData?.totalXp} />
+          <SubHeaderStatus status={OrderStatus.DONE} xp={trashData?.points} />
 
           <div className="flex flex-col px-6">
             <div className="flex items-center justify-between py-4">
@@ -62,7 +61,7 @@ const Page = () => {
             </div>
             <hr />
 
-            <SellerSection cleanerName={cleanerData?.fullName}/>
+            <SellerSection cleanerName={cleanerData?.fullName} />
             <hr />
 
             <div className="py-6">

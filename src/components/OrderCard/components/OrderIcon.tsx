@@ -22,7 +22,7 @@ const OrderIcon = ({ orderType }: TOrderIconProps) => {
   return (
     <div
       className={clsx(
-        "bg-brand-50 h-10 w-10 rounded-lg p-[10px]",
+        "bg-brand-50 h-8 w-11 rounded-lg p-[9px]",
         BACKGROUND_COLOR[orderType],
       )}
     >

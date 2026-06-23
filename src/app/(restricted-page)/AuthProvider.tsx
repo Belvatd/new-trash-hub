@@ -10,8 +10,8 @@ import React, {
 } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { TypeAccount } from "@/constants/type"
-import { User, onAuthStateChanged } from "firebase/auth"
-import { auth } from "@/firebase/config"
+import { User } from "@supabase/supabase-js"
+import { createClient } from "@/supabase/client"
 
 type TAuthContext = {
   user?: User
@@ -26,7 +26,7 @@ const AuthProvider = (props: PropsWithChildren) => {
   const pathname = usePathname()
   const [user, setUser] = useState<User>()
 
-  const { data: userData } = useGetUserById(user?.uid || "")
+  const { data: userData } = useGetUserById(user?.id || "")
 
   const setUserLogin = (data: User) => setUser(data)
 
@@ -54,11 +54,24 @@ const AuthProvider = (props: PropsWithChildren) => {
   }, [userData])
 
   useEffect(() => {
-    onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser) {
-        setUser(currentUser)
+    const supabase = createClient()
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser(session.user)
       }
     })
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser(session.user)
+      } else {
+        setUser(undefined)
+      }
+    })
+
+    return () => subscription.unsubscribe()
   }, [])
 
   return (

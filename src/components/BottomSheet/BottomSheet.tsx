@@ -7,7 +7,7 @@ export type TBottomSheet = {
   open?: boolean
   setOpen?: any
   closeOutside?: boolean
-  className? : string
+  className?: string
 } & PropsWithChildren
 export default function BottomSheet(props: TBottomSheet) {
   const { open, setOpen, children, className, closeOutside } = props
@@ -27,13 +27,13 @@ export default function BottomSheet(props: TBottomSheet) {
   }
   useOutsideAlerter(bottomSheetRef)
   return (
-    <div className="z-10">
+    <div className="relative z-[9999]">
       <motion.div
         animate={
-          open ? { opacity: 0.3, zIndex: 3 } : { opacity: 0, display: "none" }
+          open ? { opacity: 0.3, zIndex: 9998 } : { opacity: 0, display: "none" }
         }
         initial={{ opacity: 0 }}
-        className="fixed bottom-0 left-0 right-0 top-0 h-full w-screen bg-black"
+        className="fixed bottom-0 top-0 left-1/2 -translate-x-1/2 h-full w-full max-w-[430px] bg-black"
       />
       <AnimatePresence initial={false}>
         {open && (
@@ -43,11 +43,11 @@ export default function BottomSheet(props: TBottomSheet) {
             animate="open"
             exit="collapsed"
             variants={{
-              open: { y: 0, height: "auto" },
-              collapsed: { y: "100%", height: 0 },
+              open: { x: "-50%", y: 0, height: "auto" },
+              collapsed: { x: "-50%", y: "100%", height: 0 },
             }}
             transition={{ duration: 0.4, ease: [0.04, 0.62, 0.23, 0.98] }}
-            className="fixed bottom-0 left-0 right-0 z-10 m-3 rounded-3xl bg-white"
+            className="fixed bottom-3 left-1/2 z-[9999] w-[calc(100%-24px)] max-w-[406px] rounded-3xl bg-white"
           >
             <div ref={bottomSheetRef} className={className}>
               {children}

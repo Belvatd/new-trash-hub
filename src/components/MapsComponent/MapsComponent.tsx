@@ -1,6 +1,6 @@
 "use client"
 import { HTMLAttributes, useEffect, useState } from "react"
-import GoogleMaps from "./GoogleMapsProvider"
+import LeafletMap from "./LeafletMap"
 import { TGoogleMaps, TLatLng } from "./type"
 import { checkLocationPermission } from "@/utils/checkLocationPermission"
 
@@ -10,6 +10,7 @@ type TMapsComponent = {
   customPinpoint?: TLatLng
   isGetLocationNow?: boolean
 } & TGoogleMaps
+
 const MapsComponent = (props: TMapsComponent) => {
   const {
     containerProps,
@@ -18,6 +19,7 @@ const MapsComponent = (props: TMapsComponent) => {
     isGetLocationNow = true,
   } = props
   const [location, setLocation] = useState<TLatLng>()
+
   const getLocationNow = async () => {
     await checkLocationPermission({
       isOnlyRequestPermission: false,
@@ -25,7 +27,6 @@ const MapsComponent = (props: TMapsComponent) => {
         if (type === "DENIED" || type === "INVALID") {
           console.log("Gagal Mendapatkan Lokasi Saat ini")
         }
-
         if (locationLatLng) {
           setLocation(locationLatLng)
         }
@@ -44,8 +45,8 @@ const MapsComponent = (props: TMapsComponent) => {
   }, [isGetLocationNow])
 
   return (
-    <div {...containerProps}>
-      <GoogleMaps
+    <div {...containerProps} style={{ position: "relative", ...((containerProps as any)?.style) }}>
+      <LeafletMap
         center={customPinpoint || location}
         {...mapProps}
         onClickSelect={handleClickSelect}

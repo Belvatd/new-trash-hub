@@ -1,9 +1,8 @@
 "use client"
 
 import { useAuth } from "@/app/(restricted-page)/AuthProvider"
-import { auth } from "@/firebase/config"
+import { createClient } from "@/supabase/client"
 import getGreetingTime from "@/utils/getGreetingTime"
-import { signOut } from "firebase/auth"
 import { useRouter } from "next/navigation"
 import { Bell, MessageSquare, Pocket } from "react-feather"
 import PickupMenu from "./components/PickupMenu"
@@ -16,8 +15,9 @@ import OnGoingSection from "./components/OnGoingSection"
 const Page = () => {
   const { user } = useAuth()
   const router = useRouter()
-  const handleLogout = async () =>
-    await signOut(auth)
+  const handleLogout = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
       .then(() => {
         router.push("/login")
         console.log("logout")
@@ -25,6 +25,7 @@ const Page = () => {
       .catch((error) => {
         console.log(error)
       })
+  }
 
   return (
     <div className="flex flex-col">
@@ -33,7 +34,7 @@ const Page = () => {
           <div className="flex-grow">
             <p className="text-[10px]">{getGreetingTime()},</p>
             <p className="text-sm font-semibold">
-              {user?.displayName ?? "Customer"}
+              {user?.user_metadata?.full_name ?? "Customer"}
             </p>
           </div>
           <button className="inline-block">
@@ -75,7 +76,7 @@ const Page = () => {
           <CleanTogetherMenu />
         </div>
 
-        <OnGoingSection />
+        <OnGoingSection customerId={user?.id} />
 
         <button onClick={handleLogout}>logout</button>
       </div>

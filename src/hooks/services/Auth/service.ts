@@ -1,23 +1,10 @@
-import { auth, database } from "@/firebase/config"
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  fetchSignInMethodsForEmail,
-  sendEmailVerification,
-  sendPasswordResetEmail,
-  confirmPasswordReset,
-  updateCurrentUser,
-  updateProfile,
-} from "firebase/auth"
-import { arrayUnion, doc, getDoc, setDoc, updateDoc } from "firebase/firestore"
 import { deleteCookie, setCookie } from "cookies-next"
-
 import { createMutation } from "react-query-kit"
 import { CreateUserType, LoginUserType } from "./model"
 import { QueryHook, TypeAccount } from "@/constants/type"
 import { useQuery } from "@tanstack/react-query"
-import { NullishExtractor } from "@/constants/type"
 import { TAddressItem } from "@/app/(restricted-page)/customer/address/edit/page"
+import { createClient } from "@/supabase/client"
 
 export const useCreateUser = createMutation({
   mutationFn: async ({
@@ -28,30 +15,39 @@ export const useCreateUser = createMutation({
     phoneNumber,
     fullName,
   }: CreateUserType) => {
-    const result = await createUserWithEmailAndPassword(auth, email, password)
+    const supabase = createClient()
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: fullName,
+          type: type,
+        }
+      }
+    })
 
-    const data = {
-      fullName: fullName,
-      email: email,
-      address: address || null,
-      phoneNumber: phoneNumber || "",
-      type: type,
-      role: [],
-      id: auth.currentUser?.uid,
-      indexAddressSelected: 0,
+    if (authError) throw authError
+
+    const user = authData.user
+
+    if (user) {
+      const userData = {
+        id: user.id,
+        fullName: fullName,
+        email: email,
+        address: address ? address : [],
+        phoneNumber: phoneNumber || "",
+        type: type,
+        role: [],
+        indexAddressSelected: 0,
+      }
+
+      const { error: dbError } = await supabase.from("users").insert(userData)
+      if (dbError) throw dbError
     }
 
-    if (result) {
-      await updateProfile(result.user, {
-        displayName: fullName,
-      })
-      await setDoc(doc(database, "users", result.user.uid), data)
-      await sendEmailVerification(result.user)
-    }
-
-    return {
-      user: result.user,
-    }
+    return { user }
   },
 })
 
@@ -64,26 +60,32 @@ export const useEditUser = createMutation({
     type?: TypeAccount
     indexAddressSelected?: number
   }) => {
+    const supabase = createClient()
     const { id, ...data } = variable
-    const docRef = doc(database, "users", id)
+    
+    const { error } = await supabase
+      .from("users")
+      .update(data)
+      .eq("id", id)
 
-    const res = await updateDoc(docRef, {
-      ...data,
-    }).then(() => true)
-
-    if (res) {
-      return { message: "success edit user" }
-    }
+    if (error) throw error
+    return { message: "success edit user" }
   },
 })
 
 export const useGetUserById = (id: string): QueryHook => {
+  const supabase = createClient()
   const { data, status, isFetching } = useQuery({
     queryKey: ["users", id],
     queryFn: async () => {
-      const docRef = doc(database, "users", id)
-      const response = await getDoc(docRef)
-      return response?.data()
+      const { data, error } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle() // Tidak throw error jika 0 baris
+      
+      if (error) throw error
+      return data
     },
     enabled: !!id,
   })
@@ -92,24 +94,49 @@ export const useGetUserById = (id: string): QueryHook => {
 
 export const useLoginUser = createMutation({
   mutationFn: async ({ email, password }: LoginUserType) => {
-    const result = await signInWithEmailAndPassword(auth, email, password)
+    const supabase = createClient()
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
 
-    const docRef = await getDoc(doc(database, "users", result.user.uid))
-    const userData = docRef.data()
+    if (authError) throw authError
 
-    return { user: result.user, type: userData?.type as TypeAccount }
+    // Ambil type dari user_metadata agar tidak perlu query DB (hindari masalah RLS)
+    const userType = authData.user?.user_metadata?.type as TypeAccount
+
+    // Auto-create baris di public.users jika belum ada
+    const supabaseForUpsert = createClient()
+    const { data: existingUser } = await supabaseForUpsert
+      .from("users")
+      .select("id")
+      .eq("id", authData.user.id)
+      .maybeSingle()
+
+    if (!existingUser) {
+      await supabaseForUpsert.from("users").insert({
+        id: authData.user.id,
+        fullName: authData.user.user_metadata?.full_name || "",
+        email: authData.user.email || "",
+        phoneNumber: "",
+        type: userType || TypeAccount.CUSTOMER,
+        role: [],
+        address: [],
+        indexAddressSelected: 0,
+      })
+    }
+
+    return { user: authData.user, type: userType }
   },
 })
 
 export const useSendEmailResetPassword = createMutation({
   mutationFn: async ({ email }: { email: string }) => {
-    const res = await sendPasswordResetEmail(auth, email).then(() => {
-      return { status: true, email }
-    })
-
-    if (res) {
-      return res
-    }
+    const supabase = createClient()
+    const { error } = await supabase.auth.resetPasswordForEmail(email)
+    
+    if (error) throw error
+    return { status: true, email }
   },
 })
 
@@ -121,14 +148,12 @@ export const useResetPassword = createMutation({
     code: string
     password: string
   }) => {
-    const res = await confirmPasswordReset(auth, code, password).then(() => {
-      return { status: true }
-    })
-
-    if (res) {
-      deleteCookie("email-reset-password")
-      return res
-    }
+    const supabase = createClient()
+    const { error } = await supabase.auth.updateUser({ password })
+    
+    if (error) throw error
+    deleteCookie("email-reset-password")
+    return { status: true }
   },
 })
 
@@ -140,15 +165,27 @@ export const useAddAddressUser = createMutation({
     address: TAddressItem
     userId: string
   }) => {
-    const docRef = doc(database, "users", userId)
+    const supabase = createClient()
+    
+    const { data: user, error: fetchError } = await supabase
+      .from("users")
+      .select("address")
+      .eq("id", userId)
+      .single()
+      
+    if (fetchError) throw fetchError
 
-    const res = await updateDoc(docRef, {
-      address: arrayUnion(address),
-    }).then(() => true)
+    const currentAddresses = user?.address || []
+    const updatedAddresses = [...currentAddresses, address]
 
-    if (res) {
-      return { message: "Success add address" }
-    }
+    const { error: updateError } = await supabase
+      .from("users")
+      .update({ address: updatedAddresses })
+      .eq("id", userId)
+
+    if (updateError) throw updateError
+
+    return { message: "Success add address" }
   },
 })
 
@@ -162,10 +199,17 @@ export const useEditCurrentAddress = createMutation({
     userId: string
     idx: number
   }) => {
-    const docRef = doc(database, "users", userId)
-    const res = await getDoc(docRef)
+    const supabase = createClient()
+    
+    const { data: user, error: fetchError } = await supabase
+      .from("users")
+      .select("address")
+      .eq("id", userId)
+      .single()
+      
+    if (fetchError) throw fetchError
 
-    const addressUser: TAddressItem[] = res.data()?.address
+    const addressUser: TAddressItem[] = user?.address || []
 
     const addressUpdated = addressUser.map((item, i) => {
       if (i === idx) {
@@ -174,12 +218,13 @@ export const useEditCurrentAddress = createMutation({
       return item
     })
 
-    const resUpdated = await updateDoc(docRef, {
-      address: addressUpdated,
-    }).then(() => true)
+    const { error: updateError } = await supabase
+      .from("users")
+      .update({ address: addressUpdated })
+      .eq("id", userId)
 
-    if (resUpdated) {
-      return { message: "Success add address" }
-    }
+    if (updateError) throw updateError
+
+    return { message: "Success add address" }
   },
 })

@@ -2,15 +2,43 @@ import { OrderType } from "@/constants/type"
 import OrderIcon from "./components/OrderIcon"
 import formatDate from "@/utils/formatDate"
 import { ArrowRight } from "react-feather"
+import { useRouter } from "next/navigation"
 
-const OrderCard = () => {
-  const isOngoing = true
+type OrderCardProps = {
+  orderId?: string
+  status?: "WAITING" | "ONPROGRESS" | "DONE"
+  addressName?: string
+  cleanerName?: string
+  isOngoing?: boolean
+}
+
+const OrderCard = ({ orderId, status, addressName = "Rumah", cleanerName = "Cleaner", isOngoing = true }: OrderCardProps) => {
+  const router = useRouter()
+
+  const handleCardClick = () => {
+    if (isOngoing && orderId) {
+      router.push(`/customer/pickup-process?orderId=${orderId}`)
+    }
+  }
+
+  const getStatusLabel = () => {
+    if (status === "WAITING") return "Mencari cleaner..."
+    if (status === "ONPROGRESS") return "Cleaner menuju lokasi"
+    if (status === "DONE") return "Selesai"
+    return "Layanan"
+  }
+
   return (
-    <div className="flex gap-[9px] rounded-xl border border-gray-100 p-4">
+    <div 
+      className={`flex gap-[9px] rounded-xl border border-gray-100 p-4 ${isOngoing ? 'cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors' : ''}`}
+      onClick={handleCardClick}
+    >
       <OrderIcon orderType={OrderType.PICKUP} />
       <div className="flex-grow">
-        <div className="flex w-full items-center">
-          <p className="text-sm font-medium">Cleaner menuju lokasi</p>
+        <div className="flex w-full items-center gap-2">
+          {status === "WAITING" && <div className="h-2 w-2 rounded-full bg-yellow-400 animate-pulse"></div>}
+          {status === "ONPROGRESS" && <div className="h-2 w-2 rounded-full bg-[#309C7A]"></div>}
+          <p className="text-sm font-medium text-gray-900">{getStatusLabel()}</p>
 
           {!isOngoing && (
             <p className="ml-auto text-[10px] text-gray-500">
@@ -19,12 +47,16 @@ const OrderCard = () => {
           )}
         </div>
 
-        <div className="text-xxs mt-1 flex items-center gap-2 text-gray-500">
-          <p>Rumah</p>
+        <div className="text-[10px] mt-1 flex items-center gap-2 text-gray-500">
+          <p>{addressName}</p>
           {isOngoing ? (
             <>
-              <hr className=" inline-block h-2 w-[1px] bg-gray-100" />
-              <p>Soemanto Anjay</p>
+              {status === "ONPROGRESS" && (
+                <>
+                  <hr className="inline-block h-2 w-[1px] bg-gray-200" />
+                  <p>{cleanerName}</p>
+                </>
+              )}
             </>
           ) : (
             <p className="ml-auto">+20xp</p>
@@ -33,9 +65,9 @@ const OrderCard = () => {
       </div>
 
       {isOngoing && (
-        <button className="text-gray-500">
+        <div className="flex items-center text-gray-400">
           <ArrowRight size={16} />
-        </button>
+        </div>
       )}
     </div>
   )
