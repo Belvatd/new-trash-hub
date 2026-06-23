@@ -3,14 +3,14 @@
 
 @layer components {
   .btn-success {
-    @apply inline-block h-11 items-center justify-center rounded-xl bg-brand-500 px-[18px] 
-    py-[10px] text-white disabled:bg-gray-200;
+    @apply inline-block h-11 items-center justify-center rounded-xl bg-brand-500 px-[18px] py-[10px] text-white disabled:bg-gray-200;
   }
 
   .button {
     @apply inline-block h-11 items-center justify-center gap-2 rounded-xl px-[18px] py-[10px] font-semibold;
   }
 }
+
 @tailwind utilities;
 
 * {
@@ -23,7 +23,7 @@ html {
 }
 
 .content {
-  max-width: 430px;
+  max-width: 360px;
   margin: auto;
   background: white;
   height: 100dvh;

@@ -6,13 +6,23 @@ import { useRouter } from "next/navigation"
 
 type OrderCardProps = {
   orderId?: string
-  status?: "WAITING" | "ONPROGRESS" | "DONE"
+  status?: "WAITING" | "ONPROGRESS" | "DONE" | "CANCELLED"
   addressName?: string
   cleanerName?: string
   isOngoing?: boolean
+  date?: string
+  points?: number
 }
 
-const OrderCard = ({ orderId, status, addressName = "Rumah", cleanerName = "Cleaner", isOngoing = true }: OrderCardProps) => {
+const OrderCard = ({
+  orderId,
+  status,
+  addressName = "Rumah",
+  cleanerName = "Cleaner",
+  isOngoing = true,
+  date,
+  points,
+}: OrderCardProps) => {
   const router = useRouter()
 
   const handleCardClick = () => {
@@ -25,6 +35,7 @@ const OrderCard = ({ orderId, status, addressName = "Rumah", cleanerName = "Clea
     if (status === "WAITING") return "Mencari cleaner..."
     if (status === "ONPROGRESS") return "Cleaner menuju lokasi"
     if (status === "DONE") return "Selesai"
+    if (status === "CANCELLED") return "Dibatalkan"
     return "Layanan"
   }
 
@@ -38,11 +49,12 @@ const OrderCard = ({ orderId, status, addressName = "Rumah", cleanerName = "Clea
         <div className="flex w-full items-center gap-2">
           {status === "WAITING" && <div className="h-2 w-2 rounded-full bg-yellow-400 animate-pulse"></div>}
           {status === "ONPROGRESS" && <div className="h-2 w-2 rounded-full bg-[#309C7A]"></div>}
+          {status === "CANCELLED" && <div className="h-2 w-2 rounded-full bg-red-500"></div>}
           <p className="text-sm font-medium text-gray-900">{getStatusLabel()}</p>
 
           {!isOngoing && (
             <p className="ml-auto text-[10px] text-gray-500">
-              {formatDate(new Date())}
+              {formatDate(date ? new Date(date) : new Date())}
             </p>
           )}
         </div>
@@ -59,7 +71,7 @@ const OrderCard = ({ orderId, status, addressName = "Rumah", cleanerName = "Clea
               )}
             </>
           ) : (
-            <p className="ml-auto">+20xp</p>
+            <p className="ml-auto">+{points ?? 20}xp</p>
           )}
         </div>
       </div>

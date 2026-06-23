@@ -17,7 +17,28 @@ const ClientProvider = (props: PropsWithChildren) => {
 
   const handleAuthentication = () => {
     const supabase = createClient()
-    supabase.auth.onAuthStateChange(async (_event, session) => {
+    
+    // Check current session immediately on mount / pathname change
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const currentUser = session?.user
+      if (isRestricted && !currentUser) {
+        return router.push("/")
+      }
+
+      if (currentUser && currentUser.email_confirmed_at && !isRestricted && (pathname === "/" || pathname === "/login")) {
+        const type = currentUser.user_metadata?.type as TypeAccount
+
+        if (type === TypeAccount.CLEANER) {
+          router.push("/cleaner")
+        } else {
+          router.push("/customer")
+        }
+      }
+    })
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       const currentUser = session?.user
       // Jika halaman restricted tapi tidak ada user, redirect ke home
       if (isRestricted && !currentUser) {
@@ -26,22 +47,27 @@ const ClientProvider = (props: PropsWithChildren) => {
 
       // Hanya redirect ke dashboard jika user ada di halaman publik (bukan setelah login form push)
       // Gunakan user_metadata untuk dapat type tanpa perlu query DB
-      if (currentUser && currentUser.email_confirmed_at && !isRestricted && pathname === "/") {
+      if (currentUser && currentUser.email_confirmed_at && !isRestricted && (pathname === "/" || pathname === "/login")) {
         const type = currentUser.user_metadata?.type as TypeAccount
 
         if (type === TypeAccount.CLEANER) {
           router.push("/cleaner")
-        } else if (type === TypeAccount.CUSTOMER) {
+        } else {
           router.push("/customer")
         }
       }
     })
+
+    return subscription
   }
 
   useEffect(() => {
-    handleAuthentication()
+    const subscription = handleAuthentication()
+    return () => {
+      subscription.unsubscribe()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [pathname, isRestricted])
 
   return (
     <QueryClientProvider client={queryClient}>

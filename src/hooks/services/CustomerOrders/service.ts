@@ -113,3 +113,35 @@ export const useGetOngoingOrders = createQuery({
     return data as (CreateOrderType & { id: string })[]
   },
 })
+
+export const useGetOrderHistory = createQuery({
+  queryKey: ["order-history"],
+  fetcher: async (variable: { customerId: string }) => {
+    const supabase = createClient()
+    const { data: orders, error: ordersError } = await supabase
+      .from("customer_orders")
+      .select("*")
+      .eq("customerId", variable.customerId)
+      .in("status", ["DONE", "CANCELLED"])
+      .order("createdDate", { ascending: false })
+
+    if (ordersError) throw ordersError
+
+    const { data: trashes, error: trashesError } = await supabase
+      .from("trash")
+      .select("*")
+
+    if (trashesError) throw trashesError
+
+    return (orders || []).map((order) => {
+      const trash = (trashes || []).find((t) => t.id === order.trashId)
+      return {
+        ...order,
+        id: order.id,
+        trashName: trash ? trash.name : "Layanan",
+        points: trash ? trash.points : 20,
+      }
+    }) as (CreateOrderType & { id: string; trashName: string; points: number })[]
+  },
+})
+

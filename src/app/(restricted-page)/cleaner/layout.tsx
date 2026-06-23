@@ -16,7 +16,7 @@ const items = [
     icon: <Pocket />,
   },
   {
-    route: "",
+    route: "/cleaner/account",
     icon: <User />,
   },
 ]

@@ -11,21 +11,28 @@ import CleanerMenu from "./components/CleanerMenu"
 import CleanTogetherMenu from "./components/CleanTogetherMenu"
 import OrderCard from "@/components/OrderCard/OrderCard"
 import OnGoingSection from "./components/OnGoingSection"
+import { useGetOrderHistory } from "@/hooks/services/CustomerOrders"
+import { getTreeStage } from "@/utils/gamification"
+import { useGetUserById } from "@/hooks/services/Auth"
 
 const Page = () => {
   const { user } = useAuth()
   const router = useRouter()
-  const handleLogout = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-      .then(() => {
-        router.push("/login")
-        console.log("logout")
-      })
-      .catch((error) => {
-        console.log(error)
-      })
-  }
+
+  const { data: historyOrders } = useGetOrderHistory({
+    variables: { customerId: user?.id || "" },
+    enabled: !!user?.id,
+  })
+
+  const { data: userProfile } = useGetUserById(user?.id || "")
+  const rewardClaimedCount = userProfile?.reward_claimed || 0
+
+  const rawXp = (historyOrders || [])
+    .filter((order) => order.status === "DONE")
+    .reduce((sum, order) => sum + (order.points || 0), 0)
+
+  const totalXp = Math.max(rawXp - (rewardClaimedCount * 1500), 0)
+  const currentStage = getTreeStage(totalXp)
 
   return (
     <div className="flex flex-col">
@@ -47,7 +54,10 @@ const Page = () => {
       </div>
 
       <div className="flex-grow px-6">
-        <div className="-mt-10 flex items-center justify-between rounded-xl bg-white p-4 shadow-lg">
+        <div 
+          onClick={() => router.push("/customer/tree")}
+          className="-mt-10 flex items-center justify-between rounded-xl bg-white p-4 shadow-lg cursor-pointer hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+        >
           <div className="flex gap-2">
             <div className="w-9 rounded-lg bg-brand-50 p-2 text-brand-500">
               <Pocket size={20} />
@@ -55,13 +65,13 @@ const Page = () => {
 
             <div>
               <p className="text-[10px] text-gray-500">Pohon Lestari</p>
-              <p className="text-sm font-medium">Tunas</p>
+              <p className="text-sm font-medium">{currentStage.name}</p>
             </div>
           </div>
 
           <div className="flex">
             <p className="text-xl font-semibold">
-              200
+              {totalXp}
               <span className="ml-1 text-[10px] font-normal text-gray-500">
                 Xp
               </span>
@@ -77,8 +87,6 @@ const Page = () => {
         </div>
 
         <OnGoingSection customerId={user?.id} />
-
-        <button onClick={handleLogout}>logout</button>
       </div>
     </div>
   )

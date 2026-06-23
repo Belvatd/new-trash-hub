@@ -17,4 +17,6 @@ export type TGoogleMaps = {
   draggable?: boolean
   isLoadingMarker?: boolean
   onClickSelect?: () => void
+  showRadius?: boolean
+  radiusInMeters?: number
 }

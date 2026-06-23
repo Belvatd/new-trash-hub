@@ -13,32 +13,42 @@ const LeafletMap = ({
   onClickSelect,
   mapContainerClassName,
   withDetailAddress,
+  showRadius,
+  radiusInMeters,
 }: TGoogleMaps) => {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<any>(null)
   const markerRef = useRef<any>(null)
+  const circleRef = useRef<any>(null)
+  const onSubmitRef = useRef(onSubmit)
+  const lastGeocodedCenter = useRef<TLatLng | null>(null)
   const [latLng, setLatLng] = useState<TLatLng>(center || defaultLatLng)
   const [address, setAddress] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    onSubmitRef.current = onSubmit
+  }, [onSubmit])
 
   const reverseGeocode = async (lat: number, lng: number) => {
     setIsLoading(true)
     try {
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&email=trashhub.app@gmail.com&accept-language=id`
       )
       const data = await res.json()
       const fullAddress = data.display_name || ""
       setAddress(fullAddress)
 
-      onSubmit &&
-        onSubmit({
+      if (onSubmitRef.current) {
+        onSubmitRef.current({
           addressName: data.address?.road || data.address?.suburb || "",
           addressSecondary: fullAddress,
           placeId: "",
           lat,
           lng,
         })
+      }
     } catch {
       setAddress("")
     } finally {
@@ -97,24 +107,42 @@ const LeafletMap = ({
       markerRef.current = marker
       mapInstanceRef.current = map
 
+      if (showRadius) {
+        const circle = L.circle([initLatLng.lat, initLatLng.lng], {
+          color: 'transparent',
+          fillColor: '#309C7A',
+          fillOpacity: 0.3,
+          radius: radiusInMeters || 1000,
+        }).addTo(map)
+        circleRef.current = circle
+      }
+
       // Paksa Leaflet hitung ulang ukuran container agar tile tidak offset
       setTimeout(() => {
         if (!cancelled) map.invalidateSize()
       }, 100)
 
-      // Saat peta di-drag, pindahkan marker ke tengah
       if (draggable !== false) {
-        map.on("moveend", () => {
-          const c = map.getCenter()
+        map.on("click", (e: any) => {
+          const c = e.latlng
           if (c.lat == null || c.lng == null || isNaN(c.lat) || isNaN(c.lng)) return
           marker.setLatLng([c.lat, c.lng])
+          if (circleRef.current) circleRef.current.setLatLng([c.lat, c.lng])
+          lastGeocodedCenter.current = c
+          void reverseGeocode(c.lat, c.lng)
+          setLatLng({ lat: c.lat, lng: c.lng })
+        })
+
+        marker.on("dragend", () => {
+          const c = marker.getLatLng()
+          if (c.lat == null || c.lng == null || isNaN(c.lat) || isNaN(c.lng)) return
+          if (circleRef.current) circleRef.current.setLatLng([c.lat, c.lng])
+          lastGeocodedCenter.current = c
           void reverseGeocode(c.lat, c.lng)
           setLatLng({ lat: c.lat, lng: c.lng })
         })
       }
 
-      // Geocode posisi awal
-      void reverseGeocode(initLatLng.lat, initLatLng.lng)
     }
 
     void initMap()
@@ -125,6 +153,7 @@ const LeafletMap = ({
         mapInstanceRef.current.remove()
         mapInstanceRef.current = null
         markerRef.current = null
+        circleRef.current = null
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -144,7 +173,19 @@ const LeafletMap = ({
     mapInstanceRef.current.invalidateSize()
     mapInstanceRef.current.setView([center.lat, center.lng], 16)
     markerRef.current.setLatLng([center.lat, center.lng])
+    if (circleRef.current) {
+      circleRef.current.setLatLng([center.lat, center.lng])
+    }
     setLatLng(center)
+
+    if (
+      !lastGeocodedCenter.current ||
+      lastGeocodedCenter.current.lat !== center.lat ||
+      lastGeocodedCenter.current.lng !== center.lng
+    ) {
+      lastGeocodedCenter.current = center
+      void reverseGeocode(center.lat, center.lng)
+    }
   }, [center])
 
   // Invalidate size saat loading marker selesai untuk mengantisipasi perubahan dimensi layout

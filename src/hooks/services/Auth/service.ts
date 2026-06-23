@@ -228,3 +228,28 @@ export const useEditCurrentAddress = createMutation({
     return { message: "Success add address" }
   },
 })
+
+export const useClaimReward = createMutation({
+  mutationFn: async ({ userId }: { userId: string }) => {
+    const supabase = createClient()
+    const { data: user, error: fetchError } = await supabase
+      .from("users")
+      .select("reward_claimed")
+      .eq("id", userId)
+      .single()
+
+    if (fetchError) throw fetchError
+
+    const currentClaimed = user?.reward_claimed || 0
+    const newClaimed = currentClaimed + 1
+
+    const { error } = await supabase
+      .from("users")
+      .update({ reward_claimed: newClaimed })
+      .eq("id", userId)
+
+    if (error) throw error
+    return { message: "success claim reward" }
+  },
+})
+

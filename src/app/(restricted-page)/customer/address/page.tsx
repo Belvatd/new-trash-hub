@@ -59,7 +59,7 @@ const Page = () => {
     <div className="h-full pb-3">
       <ServiceHeader
         pageName="Pilih Alamat"
-        goToPage="/customer/create-order"
+        goToPage="/customer/account"
       />
 
       <div className="p-6">

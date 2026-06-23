@@ -49,7 +49,11 @@ const AddressForm = ({ address, isEdit, indexEdit }: TAddressFormProps) => {
   )
 
   const handleChangeMap = (data: TParamsOnSubmit) => {
-    setValue("fullAddress", data.addressSecondary)
+    setValue("fullAddress", data.addressSecondary, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    })
     setLocation({
       lat: data.lat,
       lng: data.lng,
@@ -108,6 +112,7 @@ const AddressForm = ({ address, isEdit, indexEdit }: TAddressFormProps) => {
           className: "h-[140px] w-full",
         }}
         isGetLocationNow={false}
+        customPinpoint={location}
         mapProps={{
           onSubmit: handleChangeMap,
         }}
