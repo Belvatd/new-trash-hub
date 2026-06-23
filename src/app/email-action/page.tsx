@@ -4,21 +4,21 @@ import { useSearchParams } from "next/navigation"
 import { Mail } from "react-feather"
 import { useEffect, useMemo, useState } from "react"
 import useCountDown from "react-countdown-hook"
-import { useSendEmailResetPassword } from "@/hooks/services/Auth"
+import { useSendEmailResetPassword, useResendVerificationEmail } from "@/hooks/services/Auth"
 import { ClipLoader, MoonLoader } from "react-spinners"
 
-type TAction = "verifyPassword" | "resetPassword"
+type TAction = "verifyPassword" | "resetPassword" | "verifyEmail"
 const initialTime = 59 * 1000
 const interval = 1000
 
 const content: Record<string, { title: string; desc: string }> = {
   verifyEmail: {
     title: "Verifikasi Akun",
-    desc: "Sillakan cek email Anda untuk memverifikasi pendaftaran Akun",
+    desc: "Silakan cek email Anda untuk memverifikasi pendaftaran Akun",
   },
   resetPassword: {
     title: "Verifikasi OTP",
-    desc: "Sillakan cek email Anda untuk memverifikasi ganti kata sandi.",
+    desc: "Silakan cek email Anda untuk memverifikasi ganti kata sandi.",
   },
 }
 
@@ -27,16 +27,27 @@ const Page = () => {
   const action = searchParams.get("action") as TAction
   const [timeLeft, { start }] = useCountDown(initialTime, interval)
 
-  const { mutate: sendEmail, isPending } = useSendEmailResetPassword({
+  const { mutate: sendEmail, isPending: isSendingReset } = useSendEmailResetPassword({
     onSuccess() {
       start(initialTime)
     },
   })
 
+  const { mutate: resendVerification, isPending: isResendingVerify } = useResendVerificationEmail({
+    onSuccess() {
+      start(initialTime)
+    },
+  })
+
+  const isPending = isSendingReset || isResendingVerify
+
   const handleClick = () => {
     if (action === "resetPassword") {
       const email = getCookie("email-reset-password") || ""
       sendEmail({ email })
+    } else if (action === "verifyEmail") {
+      const email = getCookie("email-signup") || ""
+      resendVerification({ email })
     }
   }
 
@@ -51,7 +62,7 @@ const Page = () => {
 
   useEffect(() => {
     start()
-  }, [])
+  }, [start])
 
   return (
     <div className="mt-3 grid w-full gap-5 rounded-xl bg-white p-4 pb-5">

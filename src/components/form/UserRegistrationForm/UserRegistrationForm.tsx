@@ -16,6 +16,7 @@ import { FieldErrors, useForm } from "react-hook-form"
 import { PulseLoader } from "react-spinners"
 
 import { Snackbar, Alert } from "@mui/material"
+import { setCookie } from "cookies-next"
 
 type TRegistrationFormProps = {
   type: TypeAccount
@@ -52,6 +53,9 @@ const UserRegistrationForm = ({ type }: TRegistrationFormProps) => {
         message: "Registrasi berhasil! Silakan periksa email Anda.",
         severity: "success",
       })
+      if (data?.user?.email) {
+        setCookie("email-signup", data.user.email)
+      }
       console.log(data)
       setTimeout(() => {
         if (data?.user && !data.user.email_confirmed_at) {

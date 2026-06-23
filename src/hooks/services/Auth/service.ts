@@ -259,3 +259,19 @@ export const useClaimReward = createMutation({
   },
 })
 
+export const useResendVerificationEmail = createMutation({
+  mutationFn: async ({ email }: { email: string }) => {
+    const supabase = createClient()
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: {
+        emailRedirectTo: "https://new-trash-hub.vercel.app/auth/action?type=signup",
+      }
+    })
+    
+    if (error) throw error
+    return { status: true }
+  },
+})
+
