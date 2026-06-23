@@ -1,15 +1,22 @@
 "use client"
 
 // import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect } from "react"
 import { BounceLoader } from "react-spinners"
 
 export default function Home() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+
   useEffect(() => {
-    router.push("/login")
-  }, [router])
+    const code = searchParams.get("code")
+    if (code) {
+      router.push(`/auth/action?type=recovery&code=${code}`)
+    } else {
+      router.push("/login")
+    }
+  }, [router, searchParams])
 
   return (
     <main className="p-10">

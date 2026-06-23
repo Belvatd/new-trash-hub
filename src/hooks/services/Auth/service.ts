@@ -133,7 +133,9 @@ export const useLoginUser = createMutation({
 export const useSendEmailResetPassword = createMutation({
   mutationFn: async ({ email }: { email: string }) => {
     const supabase = createClient()
-    const { error } = await supabase.auth.resetPasswordForEmail(email)
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: "https://new-trash-hub.vercel.app/auth/action?type=recovery",
+    })
     
     if (error) throw error
     return { status: true, email }
@@ -149,6 +151,10 @@ export const useResetPassword = createMutation({
     password: string
   }) => {
     const supabase = createClient()
+    if (code) {
+      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+      if (exchangeError) throw exchangeError
+    }
     const { error } = await supabase.auth.updateUser({ password })
     
     if (error) throw error

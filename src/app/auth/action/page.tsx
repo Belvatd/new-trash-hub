@@ -7,11 +7,12 @@ import { useSearchParams } from "next/navigation"
 const Page = () => {
   const searchParams = useSearchParams()
   const type = searchParams.get("type") || ""
+  const code = searchParams.get("code") || ""
 
   return (
     <>
       {type === "signup" && <VerifyEmail />}
-      {type === "recovery" && <ResetPassword code="" />}
+      {type === "recovery" && <ResetPassword code={code} />}
     </>
   )
 }
